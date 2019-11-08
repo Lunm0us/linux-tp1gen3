@@ -1,0 +1,34 @@
+_pkgbase=hid-lenovo-tp1gen3
+pkgname=hid-lenovo-tp1gen3-dkms
+pkgver="0.1.0"
+pkgrel=1
+arch=('x86_64')
+depends=('dkms' 'gcc' 'make')
+license=('GPLv2')
+
+KERNELRELEASE=`uname -r`
+
+sources=('Makefile',
+        'dkms.conf',
+        'hid-lenovo.c',)
+sha256sum=('SKIP'
+           'SKIP')
+
+build() {
+    make
+}
+
+package() {
+    KBASE="$pkgdir/usr/lib/modules/$KERNELRELEASE" make install
+
+    install -dm0755 "$pkgdir/usr/src"
+    local _p="$pkgdir/usr/src/$_pkgbase-$pkgver"
+
+    install -Dm0644 "$srcdir/dkms.conf" "$_p/dkms.conf"
+    sed -i -e "s,@VERSION@,$pkgver," -e "s,@_PKGBASE@,$_pkgbase," "$_p/dkms.conf"
+
+    install -Dm0644 "$srcdir/hid-lenovo-tp1gen3.c" "$_p/hid-lenovo-tp1gen3.c"
+    install -Dm0644 "$srcdir/hid-ids.h" "$_p/hid-ids.h"
+    install -Dm0644 "$srcdir/usbhid/usbhid.h" "$_p/usbhid/usbhid.h"
+    install -Dm0644 "$srcdir/Makefile" "$_p/Makefile"
+}

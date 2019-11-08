@@ -1,0 +1,10 @@
+*.pkg.tar.xz
+pkg
+*.o
+*.ko
+Module.symvers
+modules.order
+*.mod
+*.mod.c
+*.ko.xz
+.*

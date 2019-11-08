@@ -1,0 +1,319 @@
+diff --git a/drivers/hid/hid-lenovo.c b/drivers/hid/hid-lenovo.c
+index 364bc7f11d9d..45009448765b 100644
+--- a/drivers/hid/hid-lenovo.c
++++ b/drivers/hid/hid-lenovo.c
+@@ -18,6 +18,9 @@
+  *
+  *  Copyright (c) 2012 Peter De Wachter <pdewacht@gmail.com>
+  *  Copyright (c) 2018 Peter Ganzhorn <peter.ganzhorn@gmail.com>
++ *
++ * Linux Lenovo X1 Gen 3 Tablet cover driver:
++ *  - Lenovo X1 Gen 3 Tablet
+  */
+ 
+ /*
+@@ -29,8 +32,10 @@
+ #include <linux/hid.h>
+ #include <linux/input.h>
+ #include <linux/leds.h>
++#include <linux/usb.h>
+ 
+ #include "hid-ids.h"
++#include "usbhid/usbhid.h"
+ 
+ struct lenovo_drvdata_tpkbd {
+ 	int led_state;
+@@ -50,6 +55,20 @@ struct lenovo_drvdata_cptkbd {
+ 	int sensitivity;
+ };
+ 
++struct lenovo_drvdata_tpx1 {
++    int led_state;
++    struct led_classdev led_mute;
++    struct led_classdev led_micmute;
++    struct led_classdev led_fnlock;
++};
++
++enum hid_lenovo_led_type {
++    HID_LENOVO_LED_FNLOCK,
++    HID_LENOVO_LED_MUTE,
++    HID_LENOVO_LED_MICMUTE,
++    HID_LENOVO_LED_MAX
++};
++
+ #define map_key_clear(c) hid_map_usage_clear(hi, usage, bit, max, EV_KEY, (c))
+ 
+ static const __u8 lenovo_pro_dock_need_fixup_collection[] = {
+@@ -179,6 +198,51 @@ static int lenovo_input_mapping_scrollpoint(struct hid_device *hdev,
+ 	return 0;
+ }
+ 
++static int lenovo_input_mapping_tpx1gen3(struct hid_device *hdev,
++						struct hid_input *hi, struct hid_field *field,
++						struct hid_usage *usage, unsigned long **bit, int *max)
++{
++	if (usage->hid == HID_CP_CONSUMERCONTROL) {
++		switch(usage->usage_index) {
++			case 0:
++				input_set_capability(hi->input, EV_KEY, KEY_BLUETOOTH);
++				map_key_clear(KEY_BLUETOOTH);
++				return 1;
++			case 1:
++				input_set_capability(hi->input, EV_KEY, KEY_KEYBOARD);
++				map_key_clear(KEY_KEYBOARD);
++				return 1;
++			case 2:
++				input_set_capability(hi->input, EV_KEY, KEY_BOOKMARKS);
++				map_key_clear(KEY_BOOKMARKS);
++				return 1;
++			case 8:
++				input_set_capability(hi->input, EV_KEY, KEY_FN_ESC);
++				map_key_clear(KEY_FN_ESC);
++				return 1;
++			case 9:
++				input_set_capability(hi->input, EV_KEY, KEY_MICMUTE);
++				map_key_clear(KEY_MICMUTE);
++				return 1;
++			case 10:
++				input_set_capability(hi->input, EV_KEY, KEY_CONFIG);
++				map_key_clear(KEY_CONFIG);
++				return 1;
++			case 13:
++				input_set_capability(hi->input, EV_KEY, KEY_SWITCHVIDEOMODE);
++				map_key_clear(KEY_SWITCHVIDEOMODE);
++				return 1;
++			case 15:
++				input_set_capability(hi->input, EV_KEY, KEY_BLUETOOTH);
++				map_key_clear(KEY_BLUETOOTH);
++				return 1;
++		}
++		return -1;
++	}
++
++	return 0;
++}
++
+ static int lenovo_input_mapping(struct hid_device *hdev,
+ 		struct hid_input *hi, struct hid_field *field,
+ 		struct hid_usage *usage, unsigned long **bit, int *max)
+@@ -199,6 +263,9 @@ static int lenovo_input_mapping(struct hid_device *hdev,
+ 	case USB_DEVICE_ID_LENOVO_SCROLLPOINT_OPTICAL:
+ 		return lenovo_input_mapping_scrollpoint(hdev, hi, field,
+ 							usage, bit, max);
++	case USB_DEVICE_ID_LENOVO_X1_TAB3:
++		return lenovo_input_mapping_tpx1gen3(hdev, hi, field,
++							usage, bit, max);
+ 	default:
+ 		return 0;
+ 	}
+@@ -389,6 +456,74 @@ static int lenovo_event_cptkbd(struct hid_device *hdev,
+ 	return 0;
+ }
+ 
++static enum led_brightness lenovo_led_brightness_get_tpx1(struct led_classdev *led_cdev)
++{
++    struct device *dev = led_cdev->dev->parent;
++    struct hid_device *hdev = to_hid_device(dev);
++    struct lenovo_drvdata_tpx1 *drv_data = hid_get_drvdata(hdev);
++    enum hid_lenovo_led_type led;
++
++    if (led_cdev == &drv_data->led_mute)
++        led = HID_LENOVO_LED_MUTE;
++    else if (led_cdev == &drv_data->led_micmute)
++        led = HID_LENOVO_LED_MICMUTE;
++    else if (led_cdev == &drv_data->led_fnlock)
++        led = HID_LENOVO_LED_FNLOCK;
++    else
++        return LED_OFF;
++
++    return drv_data->led_state & (1 << led)
++                ? LED_FULL
++                : LED_OFF;
++}
++
++static void lenovo_led_brightness_set_tpx1(struct led_classdev *led_cdev, enum led_brightness value)
++{
++    struct device *dev = led_cdev->dev->parent;
++    struct hid_device *hdev = to_hid_device(dev);
++    struct lenovo_drvdata_tpx1 *drv_data = hid_get_drvdata(hdev);
++    struct hid_report *report;
++    enum hid_lenovo_led_type led;
++
++    if (led_cdev == &drv_data->led_mute) {
++        led = HID_LENOVO_LED_MUTE;
++    } else if (led_cdev == & drv_data->led_micmute) {
++        led = HID_LENOVO_LED_MICMUTE;
++    } else if (led_cdev == &drv_data->led_fnlock) {
++        led = HID_LENOVO_LED_FNLOCK;
++    } else {
++        hid_warn(hdev, "Invalid LED to set.\n");
++        return;
++    }
++
++    if (value == LED_OFF)
++        drv_data->led_state &= ~(1<< led);
++    else
++        drv_data->led_state |= (1<< led);
++
++    report = hdev->report_enum[HID_OUTPUT_REPORT].report_id_hash[9];
++    if (report) {
++        report->field[0]->value[0] = ((led + 1) << 4) | 0x44;
++        report->field[0]->value[1] = (drv_data->led_state & (1 << led)) ? 0x02 : 0x01;
++        hid_hw_request(hdev, report, HID_REQ_SET_REPORT);
++    }
++}
++
++static int lenovo_event_x1t(struct hid_device *hdev,
++		struct hid_field *field, struct hid_usage *usage, __s32 value)
++{
++	struct lenovo_drvdata_tpx1 *drv_data = hid_get_drvdata(hdev);
++	if (usage->type == EV_KEY && usage->code == KEY_FN_ESC) {
++		if (value == 1) {
++            lenovo_led_brightness_set_tpx1(&drv_data->led_fnlock,
++                                   (drv_data->led_state & (1<<HID_LENOVO_LED_FNLOCK) ?
++                                   LED_OFF : LED_FULL));
++        return 1;
++        }
++    }
++    return 0;
++}
++
+ static int lenovo_event(struct hid_device *hdev, struct hid_field *field,
+ 		struct hid_usage *usage, __s32 value)
+ {
+@@ -396,6 +531,8 @@ static int lenovo_event(struct hid_device *hdev, struct hid_field *field,
+ 	case USB_DEVICE_ID_LENOVO_CUSBKBD:
+ 	case USB_DEVICE_ID_LENOVO_CBTKBD:
+ 		return lenovo_event_cptkbd(hdev, field, usage, value);
++    case USB_DEVICE_ID_LENOVO_X1_TAB3:
++		return lenovo_event_x1t(hdev, field, usage, value);
+ 	default:
+ 		return 0;
+ 	}
+@@ -811,6 +948,108 @@ static int lenovo_probe_cptkbd(struct hid_device *hdev)
+ 	return 0;
+ }
+ 
++static int lenovo_tpx1gen3_configure(struct hid_device *hdev)
++{
++	struct hid_report *report = hdev->report_enum[HID_OUTPUT_REPORT].report_id_hash[9];
++    struct lenovo_drvdata_tpx1 *drv_data =  hid_get_drvdata(hdev);
++
++	if (!report)
++		return -ENOENT;
++
++	report->field[0]->value[0] = 0x54;
++	report->field[0]->value[1] = 0x20;
++	hid_hw_request(hdev, report, HID_REQ_SET_REPORT);
++	hid_hw_wait(hdev);
++
++	report->field[0]->value[0] = 0x54;
++	report->field[0]->value[1] = 0x08;
++	hid_hw_request(hdev, report, HID_REQ_SET_REPORT);
++
++	report->field[0]->value[0] = 0xA0;
++	report->field[0]->value[1] = 0x02;
++	hid_hw_request(hdev, report, HID_REQ_SET_REPORT);
++	hid_hw_wait(hdev);
++
++    lenovo_led_brightness_set_tpx1(&drv_data->led_mute, ledtrig_audio_get(LED_AUDIO_MUTE));
++    hid_hw_wait(hdev);
++
++    lenovo_led_brightness_set_tpx1(&drv_data->led_micmute, ledtrig_audio_get(LED_AUDIO_MICMUTE));
++    hid_hw_wait(hdev);
++
++	return 0;
++}
++
++static int lenovo_probe_tpx1gen3(struct hid_device *hdev)
++{
++	int ret = 0;
++    struct usbhid_device *usbdevice = hdev->driver_data;
++    struct device *dev = &hdev->dev;
++    struct lenovo_drvdata_tpx1 *drv_data = NULL;
++	size_t name_sz = strlen(dev_name(dev)) + 16;
++	char *name_mute, *name_micmute, *name_fnlock;
++
++    if (usbdevice->ifnum == 1) {
++        // Interface 1 is for special function keys and led contorl
++
++        drv_data = devm_kzalloc(&hdev->dev,
++                                sizeof(struct lenovo_drvdata_tpx1),
++                                GFP_KERNEL);
++        if(!drv_data) {
++            hid_err(hdev, "Could not allocate memory for tpx1 driver data\n");
++            return -ENOMEM;
++        }
++
++        drv_data->led_state = 0;
++
++        name_mute = devm_kzalloc(&hdev->dev, name_sz, GFP_KERNEL);
++        name_micmute = devm_kzalloc(&hdev->dev, name_sz, GFP_KERNEL);
++        name_fnlock = devm_kzalloc(&hdev->dev, name_sz, GFP_KERNEL);
++        if (name_mute == NULL || name_micmute == NULL || name_fnlock == NULL) {
++            hid_err(hdev, "Could not allocate memory for led data\n");
++            return -ENOMEM;
++        }
++        snprintf(name_mute, name_sz, "%s:white:mute", dev_name(dev));
++        snprintf(name_micmute, name_sz, "%s:white:micmute", dev_name(dev));
++        snprintf(name_fnlock, name_sz, "%s:white:fnlock", dev_name(dev));
++
++        drv_data->led_mute.name = name_mute;
++        drv_data->led_mute.brightness_set = lenovo_led_brightness_set_tpx1;
++        drv_data->led_mute.brightness_get = lenovo_led_brightness_get_tpx1;
++        drv_data->led_mute.max_brightness = 1;
++        drv_data->led_mute.default_trigger = "audio-mute";
++        devm_led_classdev_register(dev, &drv_data->led_mute);
++
++        drv_data->led_micmute.name = name_micmute;
++        drv_data->led_micmute.brightness_set = lenovo_led_brightness_set_tpx1;
++        drv_data->led_micmute.brightness_get = lenovo_led_brightness_get_tpx1;
++        drv_data->led_micmute.max_brightness = 1;
++        drv_data->led_micmute.default_trigger = "audio-micmute";
++        devm_led_classdev_register(dev, &drv_data->led_micmute);
++
++        drv_data->led_fnlock.name = name_fnlock;
++        drv_data->led_fnlock.brightness_set = lenovo_led_brightness_set_tpx1;
++        drv_data->led_fnlock.brightness_get = lenovo_led_brightness_get_tpx1;
++        drv_data->led_fnlock.max_brightness = 1;
++        devm_led_classdev_register(dev, &drv_data->led_fnlock);
++
++        hid_set_drvdata(hdev, drv_data);
++
++        ret = lenovo_tpx1gen3_configure(hdev);
++        if (ret) {
++            hid_err(hdev, "Configuration failed: %d\n", ret);
++        }
++    } else if (usbdevice->ifnum == 0) {
++        // Normal keyboard device does not need special handling
++        hid_set_drvdata(hdev, NULL);
++        ret = 0;
++    } else {
++        ret = -ENODEV;
++    }
++
++    return ret;
++}
++
++
+ static int lenovo_probe(struct hid_device *hdev,
+ 		const struct hid_device_id *id)
+ {
+@@ -836,6 +1075,9 @@ static int lenovo_probe(struct hid_device *hdev,
+ 	case USB_DEVICE_ID_LENOVO_CBTKBD:
+ 		ret = lenovo_probe_cptkbd(hdev);
+ 		break;
++	case USB_DEVICE_ID_LENOVO_X1_TAB3:
++		ret = lenovo_probe_tpx1gen3(hdev);
++		break;
+ 	default:
+ 		ret = 0;
+ 		break;
+@@ -922,6 +1164,7 @@ static const struct hid_device_id lenovo_devices[] = {
+ 	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL) },
+ 	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL_PRO) },
+ 	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_SCROLLPOINT_OPTICAL) },
++	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_X1_TAB3) },
+ 	{ }
+ };
+ 
