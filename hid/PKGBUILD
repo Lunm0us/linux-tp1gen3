@@ -1,16 +1,19 @@
 _pkgbase=hid-lenovo-tp1gen3
 pkgname=hid-lenovo-tp1gen3-dkms
-pkgver="0.1.0"
+pkgver="0.1.1"
 pkgrel=1
 arch=('x86_64')
-depends=('dkms' 'gcc' 'make')
+depends=('dkms' 'gcc' 'make' 'linux-headers')
 license=('GPLv2')
 
 KERNELRELEASE=`uname -r`
 
 sources=('Makefile',
         'dkms.conf',
-        'hid-lenovo.c',)
+        'hid-lenovo.c',
+        'hid-ids.h',
+        'usbhid/usbhid.h')
+
 sha256sum=('SKIP'
            'SKIP')
 

@@ -202,7 +202,7 @@ static int lenovo_input_mapping_tpx1gen3(struct hid_device *hdev,
 						struct hid_input *hi, struct hid_field *field,
 						struct hid_usage *usage, unsigned long **bit, int *max)
 {
-	if (usage->hid == HID_CP_CONSUMERCONTROL) {
+	if (usage->hid == HID_CP_CONSUMERCONTROL && usage->collection_index == 3) {
 		switch(usage->usage_index) {
 			case 0:
 				input_set_capability(hi->input, EV_KEY, KEY_BLUETOOTH);
@@ -231,10 +231,6 @@ static int lenovo_input_mapping_tpx1gen3(struct hid_device *hdev,
 			case 13:
 				input_set_capability(hi->input, EV_KEY, KEY_SWITCHVIDEOMODE);
 				map_key_clear(KEY_SWITCHVIDEOMODE);
-				return 1;
-			case 15:
-				input_set_capability(hi->input, EV_KEY, KEY_BLUETOOTH);
-				map_key_clear(KEY_BLUETOOTH);
 				return 1;
 		}
 		return -1;

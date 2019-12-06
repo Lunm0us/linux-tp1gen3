@@ -1,7 +1,5 @@
-diff --git a/drivers/hid/hid-lenovo.c b/drivers/hid/hid-lenovo.c
-index 364bc7f11d9d..45009448765b 100644
---- a/drivers/hid/hid-lenovo.c
-+++ b/drivers/hid/hid-lenovo.c
+--- a/drivers/hid/hid-lenovo.c	2019-12-06 22:53:20.131874986 +0100
++++ b/drivers/hid/hid-lenovo.c	2019-12-06 22:51:17.598067370 +0100
 @@ -18,6 +18,9 @@
   *
   *  Copyright (c) 2012 Peter De Wachter <pdewacht@gmail.com>
@@ -10,23 +8,23 @@ index 364bc7f11d9d..45009448765b 100644
 + * Linux Lenovo X1 Gen 3 Tablet cover driver:
 + *  - Lenovo X1 Gen 3 Tablet
   */
- 
+
  /*
 @@ -29,8 +32,10 @@
  #include <linux/hid.h>
  #include <linux/input.h>
  #include <linux/leds.h>
 +#include <linux/usb.h>
- 
+
  #include "hid-ids.h"
 +#include "usbhid/usbhid.h"
- 
+
  struct lenovo_drvdata_tpkbd {
  	int led_state;
-@@ -50,6 +55,20 @@ struct lenovo_drvdata_cptkbd {
+@@ -50,6 +55,20 @@
  	int sensitivity;
  };
- 
+
 +struct lenovo_drvdata_tpx1 {
 +    int led_state;
 +    struct led_classdev led_mute;
@@ -42,17 +40,17 @@ index 364bc7f11d9d..45009448765b 100644
 +};
 +
  #define map_key_clear(c) hid_map_usage_clear(hi, usage, bit, max, EV_KEY, (c))
- 
+
  static const __u8 lenovo_pro_dock_need_fixup_collection[] = {
-@@ -179,6 +198,51 @@ static int lenovo_input_mapping_scrollpoint(struct hid_device *hdev,
+@@ -179,6 +198,47 @@
  	return 0;
  }
- 
+
 +static int lenovo_input_mapping_tpx1gen3(struct hid_device *hdev,
 +						struct hid_input *hi, struct hid_field *field,
 +						struct hid_usage *usage, unsigned long **bit, int *max)
 +{
-+	if (usage->hid == HID_CP_CONSUMERCONTROL) {
++	if (usage->hid == HID_CP_CONSUMERCONTROL && usage->collection_index == 3) {
 +		switch(usage->usage_index) {
 +			case 0:
 +				input_set_capability(hi->input, EV_KEY, KEY_BLUETOOTH);
@@ -82,10 +80,6 @@ index 364bc7f11d9d..45009448765b 100644
 +				input_set_capability(hi->input, EV_KEY, KEY_SWITCHVIDEOMODE);
 +				map_key_clear(KEY_SWITCHVIDEOMODE);
 +				return 1;
-+			case 15:
-+				input_set_capability(hi->input, EV_KEY, KEY_BLUETOOTH);
-+				map_key_clear(KEY_BLUETOOTH);
-+				return 1;
 +		}
 +		return -1;
 +	}
@@ -96,7 +90,7 @@ index 364bc7f11d9d..45009448765b 100644
  static int lenovo_input_mapping(struct hid_device *hdev,
  		struct hid_input *hi, struct hid_field *field,
  		struct hid_usage *usage, unsigned long **bit, int *max)
-@@ -199,6 +263,9 @@ static int lenovo_input_mapping(struct hid_device *hdev,
+@@ -199,6 +259,9 @@
  	case USB_DEVICE_ID_LENOVO_SCROLLPOINT_OPTICAL:
  		return lenovo_input_mapping_scrollpoint(hdev, hi, field,
  							usage, bit, max);
@@ -106,10 +100,10 @@ index 364bc7f11d9d..45009448765b 100644
  	default:
  		return 0;
  	}
-@@ -389,6 +456,74 @@ static int lenovo_event_cptkbd(struct hid_device *hdev,
+@@ -389,6 +452,74 @@
  	return 0;
  }
- 
+
 +static enum led_brightness lenovo_led_brightness_get_tpx1(struct led_classdev *led_cdev)
 +{
 +    struct device *dev = led_cdev->dev->parent;
@@ -181,7 +175,7 @@ index 364bc7f11d9d..45009448765b 100644
  static int lenovo_event(struct hid_device *hdev, struct hid_field *field,
  		struct hid_usage *usage, __s32 value)
  {
-@@ -396,6 +531,8 @@ static int lenovo_event(struct hid_device *hdev, struct hid_field *field,
+@@ -396,6 +527,8 @@
  	case USB_DEVICE_ID_LENOVO_CUSBKBD:
  	case USB_DEVICE_ID_LENOVO_CBTKBD:
  		return lenovo_event_cptkbd(hdev, field, usage, value);
@@ -190,10 +184,10 @@ index 364bc7f11d9d..45009448765b 100644
  	default:
  		return 0;
  	}
-@@ -811,6 +948,108 @@ static int lenovo_probe_cptkbd(struct hid_device *hdev)
+@@ -811,6 +944,108 @@
  	return 0;
  }
- 
+
 +static int lenovo_tpx1gen3_configure(struct hid_device *hdev)
 +{
 +	struct hid_report *report = hdev->report_enum[HID_OUTPUT_REPORT].report_id_hash[9];
@@ -299,7 +293,7 @@ index 364bc7f11d9d..45009448765b 100644
  static int lenovo_probe(struct hid_device *hdev,
  		const struct hid_device_id *id)
  {
-@@ -836,6 +1075,9 @@ static int lenovo_probe(struct hid_device *hdev,
+@@ -836,6 +1071,9 @@
  	case USB_DEVICE_ID_LENOVO_CBTKBD:
  		ret = lenovo_probe_cptkbd(hdev);
  		break;
@@ -309,11 +303,39 @@ index 364bc7f11d9d..45009448765b 100644
  	default:
  		ret = 0;
  		break;
-@@ -922,6 +1164,7 @@ static const struct hid_device_id lenovo_devices[] = {
- 	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL) },
- 	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL_PRO) },
- 	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_SCROLLPOINT_OPTICAL) },
+@@ -912,23 +1150,24 @@
+
+
+ static const struct hid_device_id lenovo_devices[] = {
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_TPKBD) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_CUSBKBD) },
+-	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_CBTKBD) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_TPPRODOCK) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_III) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_PRO) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_OPTICAL) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL_PRO) },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_SCROLLPOINT_OPTICAL) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_TPKBD) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_CUSBKBD) },
++//	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_CBTKBD) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_TPPRODOCK) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_III) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_PRO) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_OPTICAL) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_IBM, USB_DEVICE_ID_IBM_SCROLLPOINT_800DPI_OPTICAL_PRO) },
++//	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_SCROLLPOINT_OPTICAL) },
 +	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_X1_TAB3) },
  	{ }
  };
- 
+
+ MODULE_DEVICE_TABLE(hid, lenovo_devices);
+
+ static struct hid_driver lenovo_driver = {
+-	.name = "lenovo",
++	.name = "lenovo-tp1gen3",
+ 	.id_table = lenovo_devices,
+ 	.input_configured = lenovo_input_configured,
+ 	.input_mapping = lenovo_input_mapping,

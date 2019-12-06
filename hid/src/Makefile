@@ -21,7 +21,7 @@ install: hid-lenovo-tp1gen3.ko.xz
 	install -D -m 755 $< $(MDEST_DIR)/$<
 
 run:
-	rmmod hid-lenovo || true
-	insmod hid-lenovo.ko.xz
-	sleep 10
-	rmmod hid-lenovo
+	rmmod hid-lenovo-tp1gen3 || true
+	insmod hid-lenovo-tp1gen3.ko
+	sleep 40
+	rmmod hid-lenovo-tp1gen3
