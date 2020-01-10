@@ -14,7 +14,9 @@ incorporate the information from the [Delta-Xi Blog][dxi]
 Prerequisites:
  - Intel ACPI Source Language compiler which is usually provided by the acpica or acpica-tools package
  - make
- - BIOS version: N1ZET76W (1.32)
+ - one of the following BIOS versions:
+   - N1ZET76W (1.32)
+   - N1ZET79W (1.35)
    other versions may require changes to the patch. The current BIOS version can be checked via
    ```
    sudo dmidecode  --string "bios-version"
@@ -31,7 +33,7 @@ Choose between `patch132` for version "1.32" and `patch135` for version "1.35".
 ```{.sh}
 cd acpi
 sudo make dsdt.dat
-make patch132 compile
+make patch135 compile
 sudo make install
 ```
 
