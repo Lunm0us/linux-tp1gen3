@@ -25,12 +25,13 @@ Prerequisites:
    ```
    The output should beginn, according to the lenovo website with "20KJ" or "20KK". The device the patch was tested on returned "20KJ001NGE".
 
-To apply the ACPI patches change to the acpi subdirectory and run make.
+To apply the ACPI patches change to the acpi subdirectory and run make with the appropriate patch for your BIOS version.
+Choose between `patch132` for version "1.32" and `patch135` for version "1.35".
 
 ```{.sh}
 cd acpi
 sudo make dsdt.dat
-make
+make patch132 compile
 sudo make install
 ```
 

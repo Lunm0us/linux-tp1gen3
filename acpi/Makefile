@@ -1,5 +1,3 @@
-all: patch compile
-
 compile: dsdt.aml
 
 .PHONY: extract extract_ssdt
@@ -14,8 +12,12 @@ extract_ssdt:
 		sudo cat $$i > $${name,,}.dat; \
 	done
 
-patch: dsdt.dsl
+patch132: dsdt.dsl
 	patch -p1 < x1t3.patch
+
+patch135: dsdt.dsl
+	patch -p1 < x1t3_v1.35.patch
+
 
 acpi_override: dsdt.aml
 	mkdir -p kernel/firmware/acpi
