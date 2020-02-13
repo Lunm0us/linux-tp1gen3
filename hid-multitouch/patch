@@ -1,0 +1,16 @@
+diff --git a/drivers/hid/hid-multitouch.c b/drivers/hid/hid-multitouch.c
+index 362805ddf377..db3b0ff47244 100644
+--- a/drivers/hid/hid-multitouch.c
++++ b/drivers/hid/hid-multitouch.c
+@@ -1292,6 +1292,11 @@ static int mt_input_mapping(struct hid_device *hdev, struct hid_input *hi,
+ 
+ 	application = rdata->application;
+ 
++    if (field->application == HID_GD_MOUSE &&
++        usage->collection_index == 1) {
++        return -1;
++    }
++
+ 	/*
+ 	 * If mtclass.export_all_inputs is not set, only map fields from
+ 	 * TouchScreen or TouchPad collections. We need to ignore fields
