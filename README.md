@@ -60,7 +60,7 @@ When running Arch Linux you may build the dkms package and install it via pacman
 ```{.sh}
 cd hid
 makepkg .
-pacman -U hid-lenovo-tp1gen3-dkms-0.1.0-1-x86_64.pkg.tar.xz
+pacman -U hid-lenovo-tp1gen3-dkms-0.1.2-1-x86_64.pkg.tar.xz
 ```
 
 For other distributions you may either install the dkms source code manually or install the compiled module. If you do the latter keep in mind, that you have to recompile the module every time your kernel is updated.

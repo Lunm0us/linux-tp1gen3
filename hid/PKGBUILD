@@ -1,6 +1,6 @@
 _pkgbase=hid-lenovo-tp1gen3
 pkgname=hid-lenovo-tp1gen3-dkms
-pkgver="0.1.1"
+pkgver="0.1.2"
 pkgrel=1
 arch=('x86_64')
 depends=('dkms' 'gcc' 'make' 'linux-headers')
@@ -22,7 +22,7 @@ build() {
 }
 
 package() {
-    KBASE="$pkgdir/usr/lib/modules/$KERNELRELEASE" make install
+    #KBASE="$pkgdir/usr/lib/modules/$KERNELRELEASE" make install
 
     install -dm0755 "$pkgdir/usr/src"
     local _p="$pkgdir/usr/src/$_pkgbase-$pkgver"
