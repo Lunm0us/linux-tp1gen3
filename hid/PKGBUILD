@@ -11,8 +11,7 @@ KERNELRELEASE=`uname -r`
 sources=('Makefile',
         'dkms.conf',
         'hid-lenovo.c',
-        'hid-ids.h',
-        'usbhid/usbhid.h')
+        'hid-ids.h')
 
 sha256sum=('SKIP'
            'SKIP')
@@ -32,6 +31,5 @@ package() {
 
     install -Dm0644 "$srcdir/hid-lenovo-tp1gen3.c" "$_p/hid-lenovo-tp1gen3.c"
     install -Dm0644 "$srcdir/hid-ids.h" "$_p/hid-ids.h"
-    install -Dm0644 "$srcdir/usbhid/usbhid.h" "$_p/usbhid/usbhid.h"
     install -Dm0644 "$srcdir/Makefile" "$_p/Makefile"
 }
