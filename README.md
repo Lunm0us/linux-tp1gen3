@@ -49,7 +49,7 @@ initrd=/boot/acpi_override mem_sleep_default=deep
 **Caution**: These steps will modify your kernel. Doing so might prevent your system from booting.
 
 The attachable keyboard uses non standard keycodes for the functional keys and an additional USB endpoint for control of the LEDs. The provided sourcecode is a patched version of the upstream [hid-lenovo module][hid-lenovo]. For reference the patches (for the first generation device?) by [Dennis Wassenberg][hid-lenovo-patches] were used. Furhtermore this
-repository contains a patched version of the upstream [hid-multitouch module][hid-multitouch] which fixes the pointstick for kernel versions > 5.4.11 (for details see [here][pointsick-issue]).
+repository contains a patched version of the upstream [hid-multitouch module][hid-multitouch] which fixes the pointstick for kernel versions > 5.4.11 (for details see [here][poinstick-issue]).
 
 Prerequisites:
  - make
@@ -73,7 +73,7 @@ sudo make install
 ```
 
 As the multitouch module is not an extension but a replacement of the upstream module, the latter must be blacklisted. While the Arch Linux package should add the necessary lines
-automatically it might be necessary to regenerate the initramfs as the original module also must be replaced there. For details see [here](aw-blacklisting).
+automatically it might be necessary to regenerate the initramfs as the original module also must be replaced there. For details see [here][aw-blacklisting].
 
 ## Additional Information
 
@@ -84,7 +84,7 @@ automatically it might be necessary to regenerate the initramfs as the original 
 
 [dxi]: https://delta-xi.net/blog/#056 "Delta-Xi Blog"
 [hid-lenovo]: https://github.com/torvalds/linux/blob/9f7582d15f82e86b2041ab22327b7d769e061c1f/drivers/hid/hid-lenovo.c "Linux hid-lenovo module sourcecode"
-[hid-lenovo]: https://github.com/torvalds/linux/blob/9f7582d15f82e86b2041ab22327b7d769e061c1f/drivers/hid/hid-multitouch.c "Linux hid-multitouch module sourcecode"
+[hid-multitouch]: https://github.com/torvalds/linux/blob/9f7582d15f82e86b2041ab22327b7d769e061c1f/drivers/hid/hid-multitouch.c "Linux hid-multitouch module sourcecode"
 [hid-lenovo-patches]: https://www.spinics.net/linux/fedora/linux-sound/msg00626.html "hid-lenovo: Add support for X1 Tablet special keys and LED control"
 [aw-blacklisting]: https://wiki.archlinux.org/index.php/Kernel_module#Blacklisting
 [poinstick-issue]: https://github.com/Lunm0us/linux-tp1gen3/issues/2
