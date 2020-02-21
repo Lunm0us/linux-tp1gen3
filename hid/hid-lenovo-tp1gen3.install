@@ -1,0 +1,20 @@
+
+add_blacklist() {
+    if [ ! -f etc/modprobe.d/modprobe.conf ] || ! grep -q 'blacklist hid-multitouch' etc/modprobe.d/modprobe.conf; then
+        echo "Adding blacklist entry to /etc/modprobe.d/modprobe.conf"
+        echo "blacklist hid-multitouch" >> etc/modprobe.d/modprobe.conf
+    fi
+}
+
+post_install() {
+    add_blacklist
+    echo "Make sure to run mkinitcpio (e.g. \"mkinitcpio -P\")"
+}
+
+post_upgrade() {
+    add_blacklist
+}
+
+post_remove() {
+    echo "Make sure to remote the \"blacklist hid-multitouch\" entry from /etc/modprobe.d/modprobe.conf if applicable."
+}

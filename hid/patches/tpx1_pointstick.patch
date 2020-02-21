@@ -1,0 +1,71 @@
+--- a/drivers/hid/hid-multitouch.c	2020-02-21 21:09:51.497745726 +0100
++++ b/drivers/hid/hid-multitouch.c	2020-02-21 14:10:09.544000099 +0100
+@@ -69,6 +69,7 @@
+ #define MT_QUIRK_ASUS_CUSTOM_UP		BIT(17)
+ #define MT_QUIRK_WIN8_PTP_BUTTONS	BIT(18)
+ #define MT_QUIRK_SEPARATE_APP_REPORT	BIT(19)
++#define MT_QUIRK_LENOVO_POINTSTICK      BIT(20)
+
+ #define MT_INPUTMODE_TOUCHSCREEN	0x02
+ #define MT_INPUTMODE_TOUCHPAD		0x03
+@@ -206,6 +207,7 @@
+ #define MT_CLS_GOOGLE				0x0111
+ #define MT_CLS_RAZER_BLADE_STEALTH		0x0112
+ #define MT_CLS_SMART_TECH			0x0113
++#define MT_CLS_LENOVO				0x0114
+
+ #define MT_DEFAULT_MAXCONTACT	10
+ #define MT_MAX_MAXCONTACT	250
+@@ -363,6 +365,15 @@
+ 			MT_QUIRK_CONTACT_CNT_ACCURATE |
+ 			MT_QUIRK_SEPARATE_APP_REPORT,
+ 	},
++	{ .name = MT_CLS_LENOVO,
++		.quirks = MT_QUIRK_ALWAYS_VALID |
++			MT_QUIRK_IGNORE_DUPLICATES |
++			MT_QUIRK_HOVERING |
++			MT_QUIRK_CONTACT_CNT_ACCURATE |
++			MT_QUIRK_WIN8_PTP_BUTTONS |
++			MT_QUIRK_LENOVO_POINTSTICK,
++		.export_all_inputs = true
++	},
+ 	{ }
+ };
+
+@@ -1334,6 +1345,18 @@
+ 		return 1;
+ 	}
+
++    /*
++     * Some Lenovo devices having a pointstick and a touchpad define
++     * two mouse report descriptors. The first one must be ignored so that
++     * the pointstick can be handled as a mouse and the touchpad as a
++     * mutlitouch device.
++     */
++	if (application->quirks & MT_QUIRK_LENOVO_POINTSTICK &&
++    	    field->application == HID_GD_MOUSE &&
++            usage->collection_index == 1) {
++		return -1;
++	}
++
+ 	if (rdata->is_mt_collection)
+ 		return mt_touch_input_mapping(hdev, hi, field, usage, bit, max,
+ 					      application);
+@@ -1807,7 +1830,7 @@
+ 			   USB_DEVICE_ID_LENOVO_X1_TAB) },
+
+ 	/* Lenovo X1 TAB Gen 3 */
+-	{ .driver_data = MT_CLS_WIN_8_DUAL,
++	{ .driver_data = MT_CLS_LENOVO,
+ 		HID_DEVICE(BUS_USB, HID_GROUP_MULTITOUCH_WIN_8,
+ 			   USB_VENDOR_ID_LENOVO,
+ 			   USB_DEVICE_ID_LENOVO_X1_TAB3) },
+@@ -2137,7 +2160,7 @@
+ };
+
+ static struct hid_driver mt_driver = {
+-	.name = "hid-multitouch",
++	.name = "hid-multitouch-tp1gen3",
+ 	.id_table = mt_devices,
+ 	.probe = mt_probe,
+ 	.remove = mt_remove,

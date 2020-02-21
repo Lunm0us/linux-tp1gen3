@@ -1,5 +1,5 @@
---- a/drivers/hid/hid-lenovo.c	2019-12-06 22:53:20.131874986 +0100
-+++ b/drivers/hid/hid-lenovo.c	2019-12-06 22:51:17.598067370 +0100
+--- a/drivers/hid/hid-lenovo.c	2020-02-21 21:09:51.494412328 +0100
++++ b/drivers/hid/hid-lenovo.c	2020-02-21 14:10:04.470676057 +0100
 @@ -18,6 +18,9 @@
   *
   *  Copyright (c) 2012 Peter De Wachter <pdewacht@gmail.com>
@@ -8,23 +8,12 @@
 + * Linux Lenovo X1 Gen 3 Tablet cover driver:
 + *  - Lenovo X1 Gen 3 Tablet
   */
-
+ 
  /*
-@@ -29,8 +32,10 @@
- #include <linux/hid.h>
- #include <linux/input.h>
- #include <linux/leds.h>
-+#include <linux/usb.h>
-
- #include "hid-ids.h"
-+#include "usbhid/usbhid.h"
-
- struct lenovo_drvdata_tpkbd {
- 	int led_state;
-@@ -50,6 +55,20 @@
+@@ -50,6 +53,20 @@
  	int sensitivity;
  };
-
+ 
 +struct lenovo_drvdata_tpx1 {
 +    int led_state;
 +    struct led_classdev led_mute;
@@ -40,12 +29,12 @@
 +};
 +
  #define map_key_clear(c) hid_map_usage_clear(hi, usage, bit, max, EV_KEY, (c))
-
+ 
  static const __u8 lenovo_pro_dock_need_fixup_collection[] = {
-@@ -179,6 +198,47 @@
+@@ -179,6 +196,47 @@
  	return 0;
  }
-
+ 
 +static int lenovo_input_mapping_tpx1gen3(struct hid_device *hdev,
 +						struct hid_input *hi, struct hid_field *field,
 +						struct hid_usage *usage, unsigned long **bit, int *max)
@@ -90,7 +79,7 @@
  static int lenovo_input_mapping(struct hid_device *hdev,
  		struct hid_input *hi, struct hid_field *field,
  		struct hid_usage *usage, unsigned long **bit, int *max)
-@@ -199,6 +259,9 @@
+@@ -199,6 +257,9 @@
  	case USB_DEVICE_ID_LENOVO_SCROLLPOINT_OPTICAL:
  		return lenovo_input_mapping_scrollpoint(hdev, hi, field,
  							usage, bit, max);
@@ -100,10 +89,10 @@
  	default:
  		return 0;
  	}
-@@ -389,6 +452,74 @@
+@@ -389,6 +450,74 @@
  	return 0;
  }
-
+ 
 +static enum led_brightness lenovo_led_brightness_get_tpx1(struct led_classdev *led_cdev)
 +{
 +    struct device *dev = led_cdev->dev->parent;
@@ -175,7 +164,7 @@
  static int lenovo_event(struct hid_device *hdev, struct hid_field *field,
  		struct hid_usage *usage, __s32 value)
  {
-@@ -396,6 +527,8 @@
+@@ -396,6 +525,8 @@
  	case USB_DEVICE_ID_LENOVO_CUSBKBD:
  	case USB_DEVICE_ID_LENOVO_CBTKBD:
  		return lenovo_event_cptkbd(hdev, field, usage, value);
@@ -184,10 +173,10 @@
  	default:
  		return 0;
  	}
-@@ -811,6 +944,108 @@
+@@ -811,6 +942,111 @@
  	return 0;
  }
-
+ 
 +static int lenovo_tpx1gen3_configure(struct hid_device *hdev)
 +{
 +	struct hid_report *report = hdev->report_enum[HID_OUTPUT_REPORT].report_id_hash[9];
@@ -222,14 +211,18 @@
 +static int lenovo_probe_tpx1gen3(struct hid_device *hdev)
 +{
 +	int ret = 0;
-+    struct usbhid_device *usbdevice = hdev->driver_data;
 +    struct device *dev = &hdev->dev;
 +    struct lenovo_drvdata_tpx1 *drv_data = NULL;
 +	size_t name_sz = strlen(dev_name(dev)) + 16;
 +	char *name_mute, *name_micmute, *name_fnlock;
 +
-+    if (usbdevice->ifnum == 1) {
-+        // Interface 1 is for special function keys and led contorl
++    struct hid_report *report = hdev->report_enum[HID_INPUT_REPORT].report_id_hash[3];
++    if (!report) {
++        // Keyboard does not have report id 3
++        // Handle with generic driver
++        ret = 0;
++    } else if (report->application == HID_CP_CONSUMERCONTROL) {
++        // Interface 1 is for special function keys and led control
 +
 +        drv_data = devm_kzalloc(&hdev->dev,
 +                                sizeof(struct lenovo_drvdata_tpx1),
@@ -278,12 +271,11 @@
 +        if (ret) {
 +            hid_err(hdev, "Configuration failed: %d\n", ret);
 +        }
-+    } else if (usbdevice->ifnum == 0) {
-+        // Normal keyboard device does not need special handling
-+        hid_set_drvdata(hdev, NULL);
-+        ret = 0;
-+    } else {
++    } else if (report->application == HID_DG_TOUCHPAD) {
++        // Touchpad is handled by hid-multitouch
 +        ret = -ENODEV;
++    } else {
++        return 0;
 +    }
 +
 +    return ret;
@@ -293,7 +285,7 @@
  static int lenovo_probe(struct hid_device *hdev,
  		const struct hid_device_id *id)
  {
-@@ -836,6 +1071,9 @@
+@@ -836,6 +1072,9 @@
  	case USB_DEVICE_ID_LENOVO_CBTKBD:
  		ret = lenovo_probe_cptkbd(hdev);
  		break;
@@ -303,9 +295,9 @@
  	default:
  		ret = 0;
  		break;
-@@ -912,23 +1150,24 @@
-
-
+@@ -910,23 +1149,24 @@
+ 
+ 
  static const struct hid_device_id lenovo_devices[] = {
 -	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_TPKBD) },
 -	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_CUSBKBD) },
@@ -330,9 +322,9 @@
 +	{ HID_USB_DEVICE(USB_VENDOR_ID_LENOVO, USB_DEVICE_ID_LENOVO_X1_TAB3) },
  	{ }
  };
-
+ 
  MODULE_DEVICE_TABLE(hid, lenovo_devices);
-
+ 
  static struct hid_driver lenovo_driver = {
 -	.name = "lenovo",
 +	.name = "lenovo-tp1gen3",

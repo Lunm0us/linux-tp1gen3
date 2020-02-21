@@ -973,38 +973,6 @@ static int lenovo_tpx1gen3_configure(struct hid_device *hdev)
 	return 0;
 }
 
-/*
- * Similar to hid_validate_values but without the warning messages since the function
- * is expected to fail for one report.
- */
-static struct hid_report* hid_has_values(struct hid_device *hid, unsigned int type,
-    unsigned int id, unsigned int field_index, unsigned int report_counts) {
-    struct hid_report *report;
-
-    if (type > HID_FEATURE_REPORT)
-        return NULL;
-    if (id >= HID_MAX_IDS)
-        return NULL;
-
-    if (id == 0) {
-        report = list_entry(hid->report_enum[type].report_list.next,
-                            struct hid_report, list);
-    } else {
-        report = hid->report_enum[type].report_id_hash[id];
-    }
-
-    if (!report)
-        return NULL;
-
-    if (report->maxfield <= field_index)
-        return NULL;
-
-    if (report->field[field_index]->report_count < report_counts)
-        return NULL;
-
-    return report;
-}
-
 static int lenovo_probe_tpx1gen3(struct hid_device *hdev)
 {
 	int ret = 0;
@@ -1013,8 +981,12 @@ static int lenovo_probe_tpx1gen3(struct hid_device *hdev)
 	size_t name_sz = strlen(dev_name(dev)) + 16;
 	char *name_mute, *name_micmute, *name_fnlock;
 
-    if (hid_has_values(hdev, HID_INPUT_REPORT, 3, 0, 16) &&
-        hid_has_values(hdev, HID_OUTPUT_REPORT, 9, 0, 2)) {
+    struct hid_report *report = hdev->report_enum[HID_INPUT_REPORT].report_id_hash[3];
+    if (!report) {
+        // Keyboard does not have report id 3
+        // Handle with generic driver
+        ret = 0;
+    } else if (report->application == HID_CP_CONSUMERCONTROL) {
         // Interface 1 is for special function keys and led control
 
         drv_data = devm_kzalloc(&hdev->dev,
@@ -1064,6 +1036,11 @@ static int lenovo_probe_tpx1gen3(struct hid_device *hdev)
         if (ret) {
             hid_err(hdev, "Configuration failed: %d\n", ret);
         }
+    } else if (report->application == HID_DG_TOUCHPAD) {
+        // Touchpad is handled by hid-multitouch
+        ret = -ENODEV;
+    } else {
+        return 0;
     }
 
     return ret;

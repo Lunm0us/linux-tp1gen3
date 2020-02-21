@@ -1,28 +1,27 @@
 _pkgbase=hid-lenovo-tp1gen3
 pkgname=hid-lenovo-tp1gen3-dkms
-pkgver="0.1.2"
+pkgver="0.2.0"
 pkgrel=1
 arch=('x86_64')
 depends=('dkms' 'gcc' 'make' 'linux-headers')
 license=('GPLv2')
+install=hid-lenovo-tp1gen3.install
 
 KERNELRELEASE=`uname -r`
 
 sources=('Makefile',
         'dkms.conf',
-        'hid-lenovo.c',
+        'hid-lenovo-tp1gen3.c',
+        'hid-mutlitouch-tp1gen3.c',
         'hid-ids.h')
 
-sha256sum=('SKIP'
-           'SKIP')
-
-build() {
-    make
-}
+sha256sum=('45e45ed6547f88a24f06bf5abe32b73de8b170339529acb8b6ea7f4401ac1a23'
+        'e638bd7199c94b0cd64c4ef8491c03a465e7b2718c657cbad95374606ce265b8'
+        '72ccd4befee2cdb6a8d322c0a2360ef70d202fc519310bca4935027ce9bd2053'
+        'aa63b93794baddcfce835d28f0d7232f3d58ef8f2c2e4834fa563160a231aaba'
+        '5de9ab9f43c2f70ea5aa9b38a92d4afa63b18a203d05f127be81818ab01ee161')
 
 package() {
-    #KBASE="$pkgdir/usr/lib/modules/$KERNELRELEASE" make install
-
     install -dm0755 "$pkgdir/usr/src"
     local _p="$pkgdir/usr/src/$_pkgbase-$pkgver"
 
@@ -30,6 +29,9 @@ package() {
     sed -i -e "s,@VERSION@,$pkgver," -e "s,@_PKGBASE@,$_pkgbase," "$_p/dkms.conf"
 
     install -Dm0644 "$srcdir/hid-lenovo-tp1gen3.c" "$_p/hid-lenovo-tp1gen3.c"
+    install -Dm0644 "$srcdir/hid-multitouch-tp1gen3.c" "$_p/hid-multitouch-tp1gen3.c"
     install -Dm0644 "$srcdir/hid-ids.h" "$_p/hid-ids.h"
     install -Dm0644 "$srcdir/Makefile" "$_p/Makefile"
 }
+
+

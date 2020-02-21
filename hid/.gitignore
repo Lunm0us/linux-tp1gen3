@@ -8,3 +8,4 @@ modules.order
 *.mod.c
 *.ko.xz
 .*
+built-in.a
