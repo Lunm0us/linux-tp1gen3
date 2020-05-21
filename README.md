@@ -79,7 +79,7 @@ automatically it might be necessary to regenerate the initramfs as the original 
 ### Installing on other distributions
 
 For other distributions you may either install the DKMS source code manually or install the compiled module. The latter method is described in the Arch Linux installation section.
-The DKMS installation is done by copying all source files, the Makefile and the DKMS configuration file to the correct directory (usually /usr/src/hid-lenovo-tp1gen3-<version>/). Furthermore you need to replace the placeholders **@_PKGBASE@** and **@VERSION@** with the actual values being hid-lenovo-tp1gen3 and the current version which can be determined from the PKBUILD file. Finally the default module must be blacklisted which usually is done by adding ```blacklist hid-multitouch``` to ```/etc/modprobe.d/modprobe.conf```.
+The DKMS installation is done by copying all source files, the Makefile and the DKMS configuration file to the correct directory (usually /usr/src/hid-lenovo-tp1gen3-&lt;version&gt;/). Furthermore you need to replace the placeholders **@_PKGBASE@** and **@VERSION@** with the actual values being hid-lenovo-tp1gen3 and the current version which can be determined from the PKBUILD file. Finally the default module must be blacklisted which usually is done by adding ```blacklist hid-multitouch``` to ```/etc/modprobe.d/modprobe.conf```.
 You can check if the installation succeeded by running ```dkms status``` which should list the module in the current version. After rebooting the patched module should be compiled and
 loaded automatically.
 
