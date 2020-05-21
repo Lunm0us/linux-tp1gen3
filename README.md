@@ -56,7 +56,8 @@ Prerequisites:
  - GCC C compiler
  - Linux headers/source for the currently installed kernel
 
-When running Arch Linux you may build the dkms package and install it via pacman:
+### Arch Linux installation
+When running Arch Linux you may build the DKMS package and install it via pacman:
 
 ```{.sh}
 cd hid
@@ -64,7 +65,7 @@ makepkg .
 pacman -U hid-lenovo-tp1gen3-dkms-0.2.0-1-x86_64.pkg.tar.xz
 ```
 
-For other distributions you may either install the dkms source code manually or install the compiled module. If you do the latter keep in mind, that you have to recompile the module every time your kernel is updated.
+If you install the compiled module keep in mind, that you have to recompile the module every time your kernel is updated.
 
 ```{.sh}
 cd hid
@@ -74,6 +75,19 @@ sudo make install
 
 As the multitouch module is not an extension but a replacement of the upstream module, the latter must be blacklisted. While the Arch Linux package should add the necessary lines
 automatically it might be necessary to regenerate the initramfs as the original module also must be replaced there. For details see [here][aw-blacklisting].
+
+### Installing on other distributions
+
+For other distributions you may either install the DKMS source code manually or install the compiled module. The latter method is described in the Arch Linux installation section.
+The DKMS installation is done by copying all source files, the Makefile and the DKMS configuration file to the correct directory (usually /usr/src/hid-lenovo-tp1gen3-<version>/). Furthermore you need to replace the placeholders **@_PKGBASE@** and **@VERSION@** with the actual values being hid-lenovo-tp1gen3 and the current version which can be determined from the PKBUILD file. Finally the default module must be blacklisted which usually is done by adding ```blacklist hid-multitouch``` to ```/etc/modprobe.d/modprobe.conf
+
+```{.sh}
+cd hid
+sudo bash install.sh
+```
+
+You can check if the installation succeeded by running ```dkms status``` which should list the module in the current version. After rebooting the patched module should be compiled and
+loaded automatically.
 
 ## Additional Information
 
