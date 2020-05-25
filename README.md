@@ -2,6 +2,8 @@
 
  - [ACPI patches (volume/powerbutton and standby)](#acpi-patches)
  - [HID driver patches (keyboard functional keys and LEDs)](#linux-hid-patches)
+  - [Installation on Arch Linux](#arch-linux-installation)
+  - [Installation on Ubuntu (and possibly other distributions)](#ubuntu-installation-dkms)
  - [Additional Information](#additional-information)
 
 ## ACPI Patches
@@ -17,7 +19,8 @@ Prerequisites:
  - one of the following BIOS versions:
    - N1ZET76W (1.32)
    - N1ZET79W (1.35)
-   other versions may require changes to the patch. The current BIOS version can be checked via
+   
+   other versions may work but may also require changes to the patch. The current BIOS version can be checked via
    ```
    sudo dmidecode  --string "bios-version"
    ```
@@ -76,19 +79,55 @@ sudo make install
 As the multitouch module is not an extension but a replacement of the upstream module, the latter must be blacklisted. While the Arch Linux package should add the necessary lines
 automatically it might be necessary to regenerate the initramfs as the original module also must be replaced there. For details see [here][aw-blacklisting].
 
-### Installing on other distributions
 
-For other distributions you may either install the DKMS source code manually or install the compiled module. The latter method is described in the Arch Linux installation section.
-The DKMS installation is done by copying all source files, the Makefile and the DKMS configuration file to the correct directory (usually /usr/src/hid-lenovo-tp1gen3-&lt;version&gt;/). Furthermore you need to replace the placeholders **@_PKGBASE@** and **@VERSION@** with the actual values being hid-lenovo-tp1gen3 and the current version which can be determined from the PKBUILD file. Finally the default module must be blacklisted which usually is done by adding ```blacklist hid-multitouch``` to ```/etc/modprobe.d/modprobe.conf```.
-You can check if the installation succeeded by running ```dkms status``` which should list the module in the current version. After rebooting the patched module should be compiled and
-loaded automatically.
+### Ubuntu installation (DKMS)
+
+1. download and extract `linux-tp1gen3-master` 
+```
+cd linux-tp1gen3-master
+```
+
+2. edit `./hid/src/dkms.conf`
+   Replace the placeholders **@_PKGBASE@** and **@VERSION@** with the actual values being hid-lenovo-tp1gen3 and the current version (e.g. 0.2.0). The version can be determined from the PKBUILD file.
+
+3. install the DKMS package
+```{.sh}
+sudo apt-get install build-essential dkms 
+```
+
+4. copy files
+```{.sh}
+sudo mkdir -p /usr/src/hid-lenovo-tp1gen3-<version>
+sudo cp -a ./hid/src/* /usr/src/hid-lenovo-tp1gen3-<version> 
+```
+
+5. build and install
+```{.sh}
+sudo dkms add -m hid-lenovo-tp1gen3 -v <version>
+sudo dkms build -m hid-lenovo-tp1gen3 -v <version>
+sudo dkms install -m hid-lenovo-tp1gen3 -v <version>
+```
+Check if the module was successfully added to dkms
+```{.sh}
+~$ dkms status
+hid-lenovo-tp1gen3, 0.2.0, 5.6.14, x86_64: installed
+```
+
+6. blacklist the old module
+   Add `blacklist hid-multitouch` to the file `/etc/modprobe.d/blacklist.conf`
+   Then reboot.
+
+## Contributions
+Thanks goes to
+ * [bitbacchus](https://github.com/bitbacchus) for writing the Ubuntu Installation section
+ * [parenthetical](https://github.com/parenthetical) for providing the BIOS patch for version 1.35
+
 
 ## Additional Information
 
  * [intel hid module description (aka the volume buttons) ](https://lkml.org/lkml/2018/6/28/636)
  * [Kernel sleep state information](https://www.kernel.org/doc/html/v4.15/admin-guide/pm/sleep-states.html)
  * [Arch Linux Wiki on using the generated apci_override and DSDT in general](https://wiki.archlinux.org/index.php/DSDT#Using_a_CPIO_archive)
-
 
 [dxi]: https://delta-xi.net/blog/#056 "Delta-Xi Blog"
 [hid-lenovo]: https://github.com/torvalds/linux/blob/9f7582d15f82e86b2041ab22327b7d769e061c1f/drivers/hid/hid-lenovo.c "Linux hid-lenovo module sourcecode"
